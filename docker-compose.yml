@@ -1,0 +1,12 @@
+version: "3.7"
+services:
+  redis:
+    image: redis:7.0-rc2-alpine
+    ports:
+      - 6380:6380
+  back:
+    image: node:16-alpine3.11
+    working_dir: /app
+    volumes:
+      - ./app:/app
+    command: sh -c "npm i && npm run dev"
