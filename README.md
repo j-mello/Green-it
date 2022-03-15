@@ -6,5 +6,3 @@ Projet Green IT
 - Jacques Cai jacques.cai1999@hotmail.com
 - Thomas Chatel thomas.chatel.acversailles@gmail.com
 - Julien Mello mello.julien@gmail.com
-
-Coucou test 
