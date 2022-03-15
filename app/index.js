@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require('dotenv');
+const generateDatabase = require('./generateDatabase');
+
+//generateDatabase();
 
 dotenv.config();
 const app = express();
