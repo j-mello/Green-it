@@ -7,7 +7,7 @@ const db = connect();
 const CitySchema = new Schema({
     nom: { type: String, required: true },
     codeCommune: { type: String, required: true },
-    codeDepartement: { type: String, required: true },
+    codeDepartement: { type: String, required: false },
     axes: [Axe]
 });
 

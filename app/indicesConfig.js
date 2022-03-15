@@ -1,4 +1,14 @@
 module.exports = {
+    colsNameByFolder: {
+        default: {
+            numCommune: 'Commune ou ARM',
+            nameCommune: 'Libellé commune ou ARM',
+        },
+        "Revenus et pauvreté des ménages en 2016": {
+            numCommune: 'Code géographique',
+            nameCommune: 'Libellé géographique'
+        }
+    },
     axes: [
         {
             name: "Accès à l’information",
