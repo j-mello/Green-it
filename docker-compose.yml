@@ -10,3 +10,5 @@ services:
     volumes:
       - ./app:/app
     command: sh -c "npm i && npm run dev"
+    ports:
+      - 3000:3000
