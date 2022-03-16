@@ -2,6 +2,34 @@ const fs = require("fs");
 const indicesConfig = require("./indicesConfig");
 const City = require("./Models/City");
 
+String.prototype.split = function(delimiter, detectQuotes = false) {
+    const value = this.valueOf();
+    const arr = [];
+    let substr = "";
+    let quote = null;
+    for (const char of value) {
+        if (!detectQuotes || quote === null) {
+            if (char === delimiter) {
+                arr.push(substr);
+                substr = "";
+                continue;
+            }
+            if (detectQuotes && char === '"') {
+                quote = char;
+                continue
+            }
+        }
+        if (detectQuotes && quote === char) {
+            quote = null;
+            continue;
+        }
+        substr += char;
+    }
+    arr.push(substr);
+
+    return arr;
+}
+
 async function generateDatabase() {
     await City.deleteMany({});
     console.log("database purged");
@@ -45,7 +73,7 @@ async function generateDatabase() {
                         console.log("line "+i);
                     }
                     if (i === 0) {
-                        for (const [i,colname] of Object.entries(data.split(","))) {
+                        for (const [i,colname] of Object.entries(data.split(",", true))) {
                             if (cols.includes(colname)) {
                                 indexByColName[colname] = parseInt(i);
                             }
@@ -58,7 +86,7 @@ async function generateDatabase() {
                         return;
                     }
 
-                    const line = data.split(",");
+                    const line = data.split(",", true);
                     if (city === null || city.codeCommune !== line[indexByColName[colNamesConfig.codeCommune]]) {
                         if (city !== null) {
                             for (const axe of city.axes) {
@@ -75,21 +103,26 @@ async function generateDatabase() {
                                 await city.save();
                             } catch(e) {
                                 console.log("save failed 2");
-                                console.log(city);
+                                const oldCity = await City.findOne({codeCommune: city.codeCommune})
+                                console.log("old city =>")
+                                console.log(JSON.stringify(oldCity,null,"\t"));
+                                console.log("new city =>");
+                                console.log(JSON.stringify(city,null,"\t"));
                                 throw e;
                             }
                         }
                         axesByName = {};
                         indicesByNameAndAxeName = {};
 
-                        const obj = {codeCommune: parseInt(line[indexByColName[colNamesConfig.codeCommune]])};
+                        const obj = {codeCommune: line[indexByColName[colNamesConfig.codeCommune]]};
                         //console.log("find =>");
                         //console.log(obj);
                         city = await City.findOne(obj);
                         if (city === null) {
                             const obj = {
+                                ...(line[indexByColName[colNamesConfig.codeCommune]] === "01001" ? {_id: "0123456789abcdef01234567"} : {}),
                                 nom: line[indexByColName[colNamesConfig.nameCommune]],
-                                codeCommune: parseInt(line[indexByColName[colNamesConfig.codeCommune]]),
+                                codeCommune: line[indexByColName[colNamesConfig.codeCommune]],
                                 codeDepartement: line[indexByColName['Département']],
                                 axes: []
                             };
@@ -102,7 +135,7 @@ async function generateDatabase() {
                                 console.log({file});
                                 console.log("create failed");
                                 console.log(obj);
-                                console.log("cols =>");{codeCommune: parseInt(line[indexByColName[colNamesConfig.codeCommune]])}
+                                console.log("cols =>");
                                 console.log(cols);
                                 console.log({i})
                                 console.log("line =>");
@@ -157,7 +190,7 @@ async function generateDatabase() {
                             await city.save();
                         } catch(e) {
                             console.log("save failed");
-                            console.log(city);
+                            console.log(JSON.stringify(city,null,"\t"));
                             throw e;
                         }
                     }
