@@ -35,7 +35,7 @@ async function saveDepartement(departement, indices) {
     for (const axe of departement.axes) {
         for (const indice of axe.indices) {
             if (indices[indice.nom] && indice.value === null) {
-                indice.value = indices[indice.nom].aggregate(indice.set);
+                indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
             }
         }
     }
@@ -63,7 +63,7 @@ async function saveCity(city,departement,indices) {
         }
         for (const indice of axe.indices) {
             if (indices[indice.nom] && indice.value === null) {
-                indice.value = indices[indice.nom].aggregate(indice.set);
+                indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
 
                 if (foundAxeD) {
                     for (const indiceD of foundAxeD.indices) {
@@ -122,7 +122,7 @@ async function generateDatabase() {
 
         const colNamesConfig = indicesConfig.colsNameByFolder[dir] ?? indicesConfig.colsNameByFolder.default;
 
-        let cols = [colNamesConfig.codeCommune, colNamesConfig.nameCommune, 'Département'];
+        let cols = [colNamesConfig.codeCommune, colNamesConfig.nameCommune, 'Département', ...(indicesConfig.totalNbPeopleColByFolder[dir]??[])];
         for (const axe of indicesConfig.axes) {
             for (const indice of axe.indices) {
                 if (indice.docFolder === dir) {
@@ -275,10 +275,15 @@ async function generateDatabase() {
                                 indicesByNameAndAxeName[axe.name][indice.name] = axe.indices[axe.indices.length - 1];
                             }
                         }
-                        indicesByNameAndAxeName[axe.name][indice.name].set.push(indice.cols.reduce((acc,col) => {
+                        let value = indice.cols.reduce((acc,col) => {
                             const n = parseFloat(line[indexByColName[col]]);
                             return acc+(isNaN(n) ? 0 : n);
-                        } , 0));
+                        } , 0);
+                        if (indice.divideWithTotalNbPeople && indicesConfig.totalNbPeopleColByFolder[dir]) {
+                            let totalPeople = indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0);
+                            value = totalPeople !== 0 ? value/indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0) : 0;
+                        }
+                        indicesByNameAndAxeName[axe.name][indice.name].set.push(value);
                     }
                     i ++;
                 }
