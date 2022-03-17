@@ -303,6 +303,7 @@ async function generateDatabase() {
                         if (departement === null) {
                             const obj = {
                                 codeDepartement: city.codeDepartement,
+                                codeRegion: city.codeRegion,
                                 axes: []
                             };
                             try {
@@ -464,4 +465,4 @@ async function generateDatabase() {
     console.log("FINISH");
 }
 
-module.exports = generateDatabase;
+generateDatabase();
