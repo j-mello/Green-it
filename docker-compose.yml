@@ -9,8 +9,8 @@ services:
     image: mongo:bionic
     volumes:
       - ./mongodb/mongod.conf:/etc/mongod.conf
-      - mongo:/data/db/
-      - mongo_log:/var/log/mongodb/
+      - ./mongodb/data/db:/data/db/
+      - ./mongodb/data/log:/var/log/mongodb/
       - ./mongodb/initdb.d/:/docker-entrypoint-initdb.d/
     env_file:
       - .env
@@ -35,10 +35,6 @@ services:
       - mongo
       - redis
       - web
-
-volumes:
-  mongo: {}
-  mongo_log: {}
 
 networks:
   mongo:
