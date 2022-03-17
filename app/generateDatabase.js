@@ -2,6 +2,7 @@ const fs = require("fs");
 const indicesConfig = require("./indicesConfig");
 const City = require("./Models/City");
 const Departement = require("./Models/Departement");
+const Region = require("./Models/Region");
 
 String.prototype.split = function(delimiter, detectQuotes = false) {
     const value = this.valueOf();
@@ -31,11 +32,68 @@ String.prototype.split = function(delimiter, detectQuotes = false) {
     return arr;
 }
 
-async function saveDepartement(departement, indices) {
-    for (const axe of departement.axes) {
+async function saveRegion(region, indices) {
+    for (const axe of region.axes) {
         for (const indice of axe.indices) {
             if (indices[indice.nom] && indice.value === null) {
                 indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
+            }
+        }
+    }
+    try {
+        await region.save();
+    } catch(e) {
+        console.log("save region failed");
+        const oldRegion = await Region.findOne({codeRegion: region.codeRegion})
+        console.log("old region =>")
+        console.log(JSON.stringify(oldRegion,null,"\t"));
+        console.log("new region =>");
+        console.log(JSON.stringify(region,null,"\t"));
+        throw e;
+    }
+}
+
+async function saveDepartement(departement, region, indices) {
+    for (const axe of departement.axes) {
+        let foundAxeR = null;
+        for (const axeR of region.axes) {
+            if (axeR.nom === axe.nom) {
+                foundAxeR = axeR;
+                break;
+            }
+        }
+        for (const indice of axe.indices) {
+            if (indices[indice.nom] && indice.value === null) {
+                indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
+
+                if (foundAxeR) {
+                    for (const indiceR of foundAxeR.indices) {
+                        if (indiceR.nom === indice.nom) {
+                            indiceR.set.push(indice.value);
+                        }
+                    }
+                } else {
+                    region.axes.push({
+                        nom: axe.nom,
+                        indices: [{
+                            nom: indice.nom,
+                            value: null,
+                            set: [indice.value]
+                        }]
+                    });
+                    foundAxeR = region.axes[region.axes.length-1];
+                }
+            }
+            try {
+                await region.save();
+            } catch(e) {
+                console.log("save region failed when save departement");
+                const oldRegion = await Region.findOne({codeRegion: region.codeRegion})
+                console.log("old region =>")
+                console.log(JSON.stringify(oldRegion,null,"\t"));
+                console.log("new region =>");
+                console.log(JSON.stringify(region,null,"\t"));
+                throw e;
             }
         }
     }
@@ -112,6 +170,7 @@ async function saveCity(city,departement,indices) {
 async function generateDatabase() {
     await City.deleteMany({});
     await Departement.deleteMany({});
+    await Region.deleteMany({});
     console.log("database purged");
 
     const computingPromises = [];
@@ -122,7 +181,7 @@ async function generateDatabase() {
 
         const colNamesConfig = indicesConfig.colsNameByFolder[dir] ?? indicesConfig.colsNameByFolder.default;
 
-        let cols = [colNamesConfig.codeCommune, colNamesConfig.nameCommune, 'Département', ...(indicesConfig.totalNbPeopleColByFolder[dir]??[])];
+        let cols = [colNamesConfig.codeCommune, colNamesConfig.nameCommune, 'Département', 'Région', ...(indicesConfig.totalNbPeopleColByFolder[dir]??[])];
         for (const axe of indicesConfig.axes) {
             for (const indice of axe.indices) {
                 if (indice.docFolder === dir) {
@@ -139,8 +198,11 @@ async function generateDatabase() {
             await (() => new Promise(resolve => {
                 console.log("read "+file);
                 const stream = fs.createReadStream(path+dir+"/"+file, {encoding: 'utf8'});
+
                 let city = null;
                 let departement = null
+                let region = null;
+
                 let axesByName = {};
                 let indicesByNameAndAxeName = {};
 
@@ -184,6 +246,7 @@ async function generateDatabase() {
                                 nom: line[indexByColName[colNamesConfig.nameCommune]],
                                 codeCommune: line[indexByColName[colNamesConfig.codeCommune]],
                                 codeDepartement: line[indexByColName['Département']]??null,
+                                codeRegion: line[indexByColName['Région']]??"com",
                                 axes: []
                             };
                             try {
@@ -205,35 +268,64 @@ async function generateDatabase() {
                                 throw e;
                             }
                         }
-
-                        if (departement === null || city.codeDepartement !== departement.codeDepartement) {
-                            if (departement !== null) {
-                                await saveDepartement(departement,indices);
+                    }
+                    if (departement === null || city.codeDepartement !== departement.codeDepartement) {
+                        if (departement !== null) {
+                            await saveDepartement(departement, region, indices);
+                        }
+                        departement = await Departement.findOne({codeDepartement: city.codeDepartement});
+                        if (departement === null) {
+                            const obj = {
+                                codeDepartement: city.codeDepartement,
+                                axes: []
+                            };
+                            try {
+                                //console.log("create city "+obj.nom+" ("+obj.codeCommune+")");
+                                //console.log(obj);
+                                departement = await Departement.create(obj);
+                                //console.log("created")
+                            } catch (e) {
+                                console.log({file});
+                                console.log("create departement failed");
+                                console.log(obj);
+                                console.log("cols =>");
+                                console.log(cols);
+                                console.log({i})
+                                console.log("line =>");
+                                console.log(line);
+                                console.log({data});
+                                console.log(indexByColName);
+                                throw e;
                             }
-                            departement = await Departement.findOne({codeDepartement: city.codeDepartement});
-                            if (departement === null) {
-                                const obj = {
-                                    codeDepartement: city.codeDepartement,
-                                    axes: []
-                                };
-                                try {
-                                    //console.log("create city "+obj.nom+" ("+obj.codeCommune+")");
-                                    //console.log(obj);
-                                    departement = await Departement.create(obj);
-                                    //console.log("created")
-                                } catch (e) {
-                                    console.log({file});
-                                    console.log("create departement failed");
-                                    console.log(obj);
-                                    console.log("cols =>");
-                                    console.log(cols);
-                                    console.log({i})
-                                    console.log("line =>");
-                                    console.log(line);
-                                    console.log({data});
-                                    console.log(indexByColName);
-                                    throw e;
-                                }
+                        }
+                    }
+                    if (region === null || city.codeRegion !== region.codeRegion) {
+                        if (region !== null) {
+                            await saveRegion(region,indices);
+                        }
+                        region = await Region.findOne({codeRegion: city.codeRegion});
+                        if (region === null) {
+                            const obj = {
+                                codeRegion: city.codeRegion,
+                                axes: []
+                            };
+                            try {
+                                //console.log("create city "+obj.nom+" ("+obj.codeCommune+")");
+                                //console.log(obj);
+                                region = await Region.create(obj);
+                                //console.log("created")
+                            } catch (e) {
+                                console.log({file});
+                                console.log("create region failed");
+                                console.log(obj);
+                                console.log("cols =>");
+                                console.log(cols);
+                                console.log({i})
+                                console.log("line =>");
+                                console.log(line);
+                                console.log({data});
+                                console.log(indexByColName);
+                                throw e;
                             }
                         }
                     }
@@ -294,7 +386,10 @@ async function generateDatabase() {
                         await saveCity(city,departement,indices);
                     }
                     if (departement) {
-                        await saveDepartement(departement, indices);
+                        await saveDepartement(departement, region, indices);
+                    }
+                    if (region) {
+                        await saveRegion(region, indices);
                     }
                     resolve();
                 }
