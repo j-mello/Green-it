@@ -1,10 +1,4 @@
-const Region = require("./Models/Region");
-
-async function calculateCityOrDepartementScore(res,elem) {
-    const region = await Region.findOne({codeRegion: elem.codeRegion});
-    if (region === null)
-        return res.sendStatus(404);
-
+async function calculCityOrDepartmentScore(res, region, elem) {
     const axesResJson = [];
     const resJson = {axes: axesResJson, score: null};
 
@@ -17,8 +11,10 @@ async function calculateCityOrDepartementScore(res,elem) {
                 break;
             }
         }
-        if (!foundAxeR)
-            return res.sendStatus(500);
+        if (!foundAxeR) {
+            res.sendStatus(500);
+            return false;
+        }
 
         for (const indice of axe.indices) {
             let foundIndiceR = null;
@@ -28,8 +24,10 @@ async function calculateCityOrDepartementScore(res,elem) {
                     break;
                 }
             }
-            if (!foundIndiceR)
-                return res.sendStatus(500);
+            if (!foundIndiceR) {
+                res.sendStatus(500);
+                return false;
+            }
 
             axeResJon.indices.push({
                 nom: indice.nom,
@@ -41,7 +39,7 @@ async function calculateCityOrDepartementScore(res,elem) {
         axesResJson.push(axeResJon);
     }
     resJson.score = axesResJson.reduce((acc,axe) => acc+axe.score, 0)/axesResJson.length
-    res.json(resJson);
+    return resJson;
 }
 
-module.exports = {calculateCityOrDepartementScore};
+module.exports = {calculCityOrDepartmentScore};
