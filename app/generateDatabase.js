@@ -1,6 +1,7 @@
 const fs = require("fs");
 const indicesConfig = require("./indicesConfig");
 const City = require("./Models/City");
+const Departement = require("./Models/Departement");
 
 String.prototype.split = function(delimiter, detectQuotes = false) {
     const value = this.valueOf();
@@ -30,8 +31,87 @@ String.prototype.split = function(delimiter, detectQuotes = false) {
     return arr;
 }
 
+async function saveDepartement(departement, indices) {
+    for (const axe of departement.axes) {
+        for (const indice of axe.indices) {
+            if (indices[indice.nom] && indice.value === null) {
+                indice.value = indices[indice.nom].aggregate(indice.set);
+            }
+        }
+    }
+    try {
+        await departement.save();
+    } catch(e) {
+        console.log("save departement failed");
+        const oldDepartement = await Departement.findOne({codeDepartement: departement.codeDepartement})
+        console.log("old departement =>")
+        console.log(JSON.stringify(oldDepartement,null,"\t"));
+        console.log("new departement =>");
+        console.log(JSON.stringify(departement,null,"\t"));
+        throw e;
+    }
+}
+
+async function saveCity(city,departement,indices) {
+    for (const axe of city.axes) {
+        let foundAxeD = null;
+        for (const axeD of departement.axes) {
+            if (axeD.nom === axe.nom) {
+                foundAxeD = axeD;
+                break;
+            }
+        }
+        for (const indice of axe.indices) {
+            if (indices[indice.nom] && indice.value === null) {
+                indice.value = indices[indice.nom].aggregate(indice.set);
+
+                if (foundAxeD) {
+                    for (const indiceD of foundAxeD.indices) {
+                        if (indiceD.nom === indice.nom) {
+                            indiceD.set.push(indice.value);
+                        }
+                    }
+                } else {
+                    departement.axes.push({
+                        nom: axe.nom,
+                        indices: [{
+                            nom: indice.nom,
+                            value: null,
+                            set: [indice.value]
+                        }]
+                    });
+                    foundAxeD = departement.axes[departement.axes.length-1];
+                }
+            }
+            try {
+                await departement.save();
+            } catch(e) {
+                console.log("save departement failed when save city");
+                const oldDepartement = await Departement.findOne({codeDepartement: departement.codeDepartement})
+                console.log("old departement =>")
+                console.log(JSON.stringify(oldDepartement,null,"\t"));
+                console.log("new departement =>");
+                console.log(JSON.stringify(departement,null,"\t"));
+                throw e;
+            }
+        }
+    }
+    try {
+        await city.save();
+    } catch(e) {
+        console.log("save failed");
+        const oldCity = await City.findOne({codeCommune: city.codeCommune})
+        console.log("old city =>")
+        console.log(JSON.stringify(oldCity,null,"\t"));
+        console.log("new city =>");
+        console.log(JSON.stringify(city,null,"\t"));
+        throw e;
+    }
+}
+
 async function generateDatabase() {
     await City.deleteMany({});
+    await Departement.deleteMany({});
     console.log("database purged");
 
     const computingPromises = [];
@@ -60,6 +140,7 @@ async function generateDatabase() {
                 console.log("read "+file);
                 const stream = fs.createReadStream(path+dir+"/"+file, {encoding: 'utf8'});
                 let city = null;
+                let departement = null
                 let axesByName = {};
                 let indicesByNameAndAxeName = {};
 
@@ -89,27 +170,7 @@ async function generateDatabase() {
                     const line = data.split(",", true);
                     if (city === null || city.codeCommune !== line[indexByColName[colNamesConfig.codeCommune]]) {
                         if (city !== null) {
-                            for (const axe of city.axes) {
-                                for (const indice of axe.indices) {
-                                    //console.log(indice);
-                                    //console.log(indices);
-                                    //console.log(indices[indice.nom]);
-                                    if (indices[indice.nom] && indice.value === null) {
-                                        indice.value = indices[indice.nom].aggregate(indice.set);
-                                    }
-                                }
-                            }
-                            try {
-                                await city.save();
-                            } catch(e) {
-                                console.log("save failed 2");
-                                const oldCity = await City.findOne({codeCommune: city.codeCommune})
-                                console.log("old city =>")
-                                console.log(JSON.stringify(oldCity,null,"\t"));
-                                console.log("new city =>");
-                                console.log(JSON.stringify(city,null,"\t"));
-                                throw e;
-                            }
+                            await saveCity(city,departement,indices);
                         }
                         axesByName = {};
                         indicesByNameAndAxeName = {};
@@ -120,10 +181,9 @@ async function generateDatabase() {
                         city = await City.findOne(obj);
                         if (city === null) {
                             const obj = {
-                                ...(line[indexByColName[colNamesConfig.codeCommune]] === "01001" ? {_id: "0123456789abcdef01234567"} : {}),
                                 nom: line[indexByColName[colNamesConfig.nameCommune]],
                                 codeCommune: line[indexByColName[colNamesConfig.codeCommune]],
-                                codeDepartement: line[indexByColName['Département']],
+                                codeDepartement: line[indexByColName['Département']]??null,
                                 axes: []
                             };
                             try {
@@ -145,6 +205,37 @@ async function generateDatabase() {
                                 throw e;
                             }
                         }
+
+                        if (departement === null || city.codeDepartement !== departement.codeDepartement) {
+                            if (departement !== null) {
+                                await saveDepartement(departement,indices);
+                            }
+                            departement = await Departement.findOne({codeDepartement: city.codeDepartement});
+                            if (departement === null) {
+                                const obj = {
+                                    codeDepartement: city.codeDepartement,
+                                    axes: []
+                                };
+                                try {
+                                    //console.log("create city "+obj.nom+" ("+obj.codeCommune+")");
+                                    //console.log(obj);
+                                    departement = await Departement.create(obj);
+                                    //console.log("created")
+                                } catch (e) {
+                                    console.log({file});
+                                    console.log("create departement failed");
+                                    console.log(obj);
+                                    console.log("cols =>");
+                                    console.log(cols);
+                                    console.log({i})
+                                    console.log("line =>");
+                                    console.log(line);
+                                    console.log({data});
+                                    console.log(indexByColName);
+                                    throw e;
+                                }
+                            }
+                        }
                     }
 
                     for (const indice of Object.values(indices)) {
@@ -156,6 +247,17 @@ async function generateDatabase() {
                                     indices: []
                                 });
                                 axesByName[indice.axeName] = city.axes[city.axes.length - 1];
+                                try {
+                                    await city.save();
+                                } catch(e) {
+                                    console.log("save failed 3");
+                                    const oldCity = await City.findOne({codeCommune: city.codeCommune})
+                                    console.log("old city =>")
+                                    console.log(JSON.stringify(oldCity,null,"\t"));
+                                    console.log("new city =>");
+                                    console.log(JSON.stringify(city,null,"\t"));
+                                    throw e;
+                                }
                             }
                         }
                         const axe = axesByName[indice.axeName];
@@ -173,12 +275,10 @@ async function generateDatabase() {
                                 indicesByNameAndAxeName[axe.name][indice.name] = axe.indices[axe.indices.length - 1];
                             }
                         }
-                        for (const col of indice.cols) {
+                        indicesByNameAndAxeName[axe.name][indice.name].set.push(indice.cols.reduce((acc,col) => {
                             const n = parseFloat(line[indexByColName[col]]);
-                            if (!isNaN(n)) {
-                                indicesByNameAndAxeName[axe.name][indice.name].set.push(n);
-                            }
-                        }
+                            return acc+(isNaN(n) ? 0 : n);
+                        } , 0));
                     }
                     i ++;
                 }
@@ -186,13 +286,10 @@ async function generateDatabase() {
                 const onClose = async () => {
                     console.log("finished "+file);
                     if (city) {
-                        try {
-                            await city.save();
-                        } catch(e) {
-                            console.log("save failed");
-                            console.log(JSON.stringify(city,null,"\t"));
-                            throw e;
-                        }
+                        await saveCity(city,departement,indices);
+                    }
+                    if (departement) {
+                        await saveDepartement(departement, indices);
                     }
                     resolve();
                 }
