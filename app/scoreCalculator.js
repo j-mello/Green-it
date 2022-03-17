@@ -1,4 +1,4 @@
-async function calculCityOrDepartmentScore(res, region, elem) {
+function calculCityOrDepartmentScore(res, region, elem) {
     const axesResJson = [];
     const resJson = {axes: axesResJson, score: null};
 
@@ -31,15 +31,35 @@ async function calculCityOrDepartmentScore(res, region, elem) {
 
             axeResJon.indices.push({
                 nom: indice.nom,
-                score: ((indice.value-foundIndiceR.value)/foundIndiceR.value + 1) * 100
+                score: ((indice.value - foundIndiceR.value) / foundIndiceR.value + 1) * 100
             });
         }
-        axeResJon.score = axeResJon.indices.reduce((acc,indice) => acc+indice.score, 0)/axeResJon.indices.length
+        axeResJon.score = axeResJon.indices.reduce((acc, indice) => acc + indice.score, 0) / axeResJon.indices.length
 
         axesResJson.push(axeResJon);
     }
-    resJson.score = axesResJson.reduce((acc,axe) => acc+axe.score, 0)/axesResJson.length
+    resJson.score = axesResJson.reduce((acc, axe) => acc + axe.score, 0) / axesResJson.length
     return resJson;
 }
 
-module.exports = {calculCityOrDepartmentScore};
+function getRegionValues(region) {
+    const axes = region.axes.map(axe => ({
+        ...axe._doc,
+        _id: undefined,
+        indices: axe.indices.map(indice => ({
+            ...indice._doc,
+            _id: undefined,
+            set: undefined
+        })),
+        value: axe.indices.reduce((acc, indice) => acc + indice.value, 0) / axe.indices.length
+    }))
+    return {
+        ...region._doc,
+        _id: undefined,
+        __v: undefined,
+        axes,
+        value: axes.reduce((acc, axe) => acc + axe.value, 0) / axes.length
+    }
+}
+
+module.exports = {calculCityOrDepartmentScore, getRegionValues};
