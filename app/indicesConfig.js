@@ -104,12 +104,7 @@ module.exports = {
                         "Non scolarisées",
                     docFolder: "Diplômes - Formation en 2016",
                     divideWithTotalNbPeople: true,
-                    cols: [
-                        "Pop 15 ans ou plus non scol. Sans diplôme ou BEPC, brevet des collèges, DNB en 2016 (princ)",
-                        "Pop 15 ans ou plus non scol. CAP-BEP en 2016 (princ)",
-                        "Pop 15 ans ou plus non scol. BAC en 2016 (princ)",
-                        "Pop 15 ans ou plus non scol. Enseignement sup en 2016 (princ)"
-                    ]
+                    cols: ["Pop 15 ans ou plus non scol. Sans diplôme ou BEPC, brevet des collèges, DNB en 2016 (princ)"]
                 }
             ]
         }
