@@ -1,10 +1,5 @@
 version: "3.7"
 services:
-  redis:
-    image: redis:7.0-rc2-alpine
-    networks:
-      - redis
-
   mongodb:
     image: mongo:bionic
     volumes:
@@ -33,13 +28,10 @@ services:
       - 3000:3000
     networks:
       - mongo
-      - redis
       - web
 
 networks:
   mongo:
-    internal: true
-  redis:
     internal: true
   web:
     internal: false
