@@ -45,5 +45,7 @@ app.get("/score/:codeCommune", async (req, res) => {
     })
 })
 
+app.use(express.static('front'))
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.info("back listening on port " + PORT));
