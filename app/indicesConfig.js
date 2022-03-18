@@ -99,8 +99,8 @@ module.exports = {
                     ]
                 },
                 {
-                    name: "Part des personnes de 15 ans\n" +
-                        "et plus peu / non diplômées et\n" +
+                    name: "Part des personnes de 15 ans " +
+                        "et plus peu / non diplômées et " +
                         "Non scolarisées",
                     docFolder: "Diplômes - Formation en 2016",
                     divideWithTotalNbPeople: true,

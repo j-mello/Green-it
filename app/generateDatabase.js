@@ -142,7 +142,6 @@ async function saveCity(city,departement,indices) {
 
             if (indices[indice.nom] && indice.value === null) {
                 if (!indice.set || indice.set.length === 0) {
-                    console.log("delete indice '"+indice.nom+"' in city '"+city.codeCommune+"'");
                     axe.indices.splice(i,1);
                     indicesDeleted = true;
                     i --;
