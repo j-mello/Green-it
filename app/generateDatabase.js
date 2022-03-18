@@ -32,6 +32,14 @@ String.prototype.split = function(delimiter, detectQuotes = false) {
     return arr;
 }
 
+String.prototype.addMissingZeros = function(n = 5) {
+    let value = this.valueOf();
+    while (value.length < n) {
+        value = '0'+value;
+    }
+    return value;
+}
+
 async function saveRegion(region, indices) {
     for (const axe of region.axes) {
         for (const indice of axe.indices) {
@@ -63,9 +71,8 @@ async function saveDepartement(departement, region, indices) {
             }
         }
         for (const indice of axe.indices) {
-            if (indices[indice.nom] && indice.value === null) {
+            if (indices[indice.nom]) {
                 indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
-                indice.set = null
 
                 if (foundAxeR) {
                     let indiceFound = false;
@@ -140,7 +147,7 @@ async function saveCity(city,departement,indices) {
         for (let i=0;i<axe.indices.length;i++) {
             const indice = axe.indices[i];
 
-            if (indices[indice.nom] && indice.value === null) {
+            if (indices[indice.nom]) {
                 if (!indice.set || indice.set.length === 0) {
                     axe.indices.splice(i,1);
                     indicesDeleted = true;
@@ -148,7 +155,6 @@ async function saveCity(city,departement,indices) {
                     continue;
                 }
                 indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
-                indice.set = null;
 
                 if (foundAxeD) {
                     let indiceFound = false;
@@ -250,12 +256,15 @@ async function generateDatabase() {
     const computingPromises = [];
 
     const path = __dirname+"/docs/";
-    for (const [dir,files] of Object.entries(indicesConfig.foldersAndFiles)) {
+    for (const [dir, {files,colsName,totalNbPeopleCols}] of Object.entries(indicesConfig.foldersConfig)) {
+        if (!files)
+            continue;
+
         const indices = {};
 
-        const colNamesConfig = indicesConfig.colsNameByFolder[dir] ?? indicesConfig.colsNameByFolder.default;
+        const colNamesConfig = colsName ?? indicesConfig.foldersConfig.default.colsName;
 
-        let cols = [colNamesConfig.codeCommune, colNamesConfig.nameCommune, 'Département', 'Région', ...(indicesConfig.totalNbPeopleColByFolder[dir]??[])];
+        let cols = [colNamesConfig.codeCommune, colNamesConfig.nameCommune, 'Département', 'Région', ...(totalNbPeopleCols??[])];
         for (const axe of indicesConfig.axes) {
             for (const indice of axe.indices) {
                 if (indice.docFolder === dir) {
@@ -311,13 +320,16 @@ async function generateDatabase() {
                         axesByName = {};
                         indicesByNameAndAxeName = {};
 
-                        const obj = {codeCommune: line[indexByColName[colNamesConfig.codeCommune]]};
+                        const codeCommune = line[indexByColName[colNamesConfig.codeCommune]].addMissingZeros();
+
+                        const obj = {codeCommune};
 
                         city = await City.findOne(obj);
                         if (city === null) {
                             const obj = {
                                 nom: line[indexByColName[colNamesConfig.nameCommune]],
-                                codeCommune: line[indexByColName[colNamesConfig.codeCommune]],
+                                nom_lower: line[indexByColName[colNamesConfig.nameCommune]].toLowerCase(),
+                                codeCommune,
                                 codeDepartement: line[indexByColName['Département']]??null,
                                 codeRegion: line[indexByColName['Région']]??"com",
                                 axes: []
@@ -439,11 +451,17 @@ async function generateDatabase() {
                             const n = parseFloat(line[indexByColName[col]]);
                             return acc+n;
                         } , 0);
-                        if (!isNaN(value) && indice.divideWithTotalNbPeople && indicesConfig.totalNbPeopleColByFolder[dir]) {
-                            let totalPeople = indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0);
-                            value = (!isNaN(totalPeople) && totalPeople !== 0) ? value/indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0) : NaN;
+                        if (!isNaN(value) && indice.divideWithTotalNbPeople && totalNbPeopleCols) {
+                            let totalPeople = totalNbPeopleCols.reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0);
+                            value = (!isNaN(totalPeople) && totalPeople !== 0) ? value/totalNbPeopleCols.reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0) : NaN;
+                            if (!isNaN(value) && value > 1) {
+                                value = 1;
+                            }
                         }
                         if (!isNaN(value)) {
+                            if (indicesByNameAndAxeName[axe.name][indice.name].set === null) {
+                                console.log("set null in "+city.nom+" ("+city.codeCommune+")");
+                            }
                             indicesByNameAndAxeName[axe.name][indice.name].set.push(value);
                         }
 
