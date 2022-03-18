@@ -1,68 +1,252 @@
 const fs = require("fs");
-const fsPromise = require("fs/promises");
 const indicesConfig = require("./indicesConfig");
 const City = require("./Models/City");
+const Departement = require("./Models/Departement");
+const Region = require("./Models/Region");
 
-const createCityGetter = async (callback) => {
-    const value = await callback();
-    return (callback) => {
-        callback(value);
+String.prototype.split = function(delimiter, detectQuotes = false) {
+    const value = this.valueOf();
+    const arr = [];
+    let substr = "";
+    let quote = null;
+    for (const char of value) {
+        if (!detectQuotes || quote === null) {
+            if (char === delimiter) {
+                arr.push(substr);
+                substr = "";
+                continue;
+            }
+            if (detectQuotes && char === '"') {
+                quote = char;
+                continue
+            }
+        }
+        if (detectQuotes && quote === char) {
+            quote = null;
+            continue;
+        }
+        substr += char;
+    }
+    arr.push(substr);
+
+    return arr;
+}
+
+async function saveRegion(region, indices) {
+    for (const axe of region.axes) {
+        for (const indice of axe.indices) {
+            if (indices[indice.nom]) {
+                indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
+            }
+        }
+    }
+    try {
+        await region.save();
+    } catch(e) {
+        console.log("save region failed");
+        const oldRegion = await Region.findOne({codeRegion: region.codeRegion})
+        console.log("old region =>")
+        console.log(JSON.stringify(oldRegion,null,"\t"));
+        console.log("new region =>");
+        console.log(JSON.stringify(region,null,"\t"));
+        throw e;
+    }
+}
+
+async function saveDepartement(departement, region, indices) {
+    for (const axe of departement.axes) {
+        let foundAxeR = null;
+        for (const axeR of region.axes) {
+            if (axeR.nom === axe.nom) {
+                foundAxeR = axeR;
+                break;
+            }
+        }
+        for (const indice of axe.indices) {
+            if (indices[indice.nom] && indice.value === null) {
+                indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
+                indice.set = null
+
+                if (foundAxeR) {
+                    let indiceFound = false;
+                    for (const indiceR of foundAxeR.indices) {
+                        if (indiceR.nom === indice.nom) {
+                            if (indiceR.set === null) {
+                                console.log(departement);
+                                console.log(region);
+                            }
+                            indiceR.set.push(indice.value);
+                            indiceFound = true;
+                            break;
+                        }
+                    }
+                    if (!indiceFound) {
+                        foundAxeR.indices.push({
+                            nom: indice.nom,
+                            value: null,
+                            set: [indice.value]
+                        })
+                    }
+                } else {
+                    region.axes.push({
+                        nom: axe.nom,
+                        indices: [{
+                            nom: indice.nom,
+                            value: null,
+                            set: [indice.value]
+                        }]
+                    });
+                    foundAxeR = region.axes[region.axes.length-1];
+                }
+            }
+            try {
+                await region.save();
+            } catch(e) {
+                console.log("save region failed when save departement");
+                const oldRegion = await Region.findOne({codeRegion: region.codeRegion})
+                console.log("old region =>")
+                console.log(JSON.stringify(oldRegion,null,"\t"));
+                console.log("new region =>");
+                console.log(JSON.stringify(region,null,"\t"));
+                throw e;
+            }
+        }
+    }
+    try {
+        await departement.save();
+    } catch(e) {
+        console.log("save departement failed");
+        const oldDepartement = await Departement.findOne({codeDepartement: departement.codeDepartement})
+        console.log("old departement =>")
+        console.log(JSON.stringify(oldDepartement,null,"\t"));
+        console.log("new departement =>");
+        console.log(JSON.stringify(departement,null,"\t"));
+        throw e;
+    }
+}
+
+async function saveCity(city,departement,indices) {
+    for (const axe of city.axes) {
+        let foundAxeD = null;
+        if (departement) {
+            for (const axeD of departement.axes) {
+                if (axeD.nom === axe.nom) {
+                    foundAxeD = axeD;
+                    break;
+                }
+            }
+        }
+        for (const indice of axe.indices) {
+            if (indices[indice.nom] && indice.value === null) {
+                indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
+                indice.set = null;
+
+                if (foundAxeD) {
+                    let indiceFound = false;
+                    for (const indiceD of foundAxeD.indices) {
+                        if (indiceD.nom === indice.nom) {
+                            indiceD.set.push(indice.value);
+                            indiceFound = true;
+                            break;
+                        }
+                    }
+                    if (!indiceFound) {
+                        foundAxeD.indices.push({
+                            nom: indice.nom,
+                            value: null,
+                            set: [indice.value]
+                        });
+                    }
+                } else if (departement) {
+                    departement.axes.push({
+                        nom: axe.nom,
+                        indices: [{
+                            nom: indice.nom,
+                            value: null,
+                            set: [indice.value]
+                        }]
+                    });
+                    foundAxeD = departement.axes[departement.axes.length-1];
+                }
+            }
+            if (departement) {
+                try {
+                    await departement.save();
+                } catch (e) {
+                    console.log("save departement failed when save city");
+                    const oldDepartement = await Departement.findOne({codeDepartement: departement.codeDepartement})
+                    console.log("old departement =>")
+                    console.log(JSON.stringify(oldDepartement, null, "\t"));
+                    console.log("new departement =>");
+                    console.log(JSON.stringify(departement, null, "\t"));
+                    throw e;
+                }
+            }
+        }
+    }
+    try {
+        await city.save();
+    } catch(e) {
+        console.log("save failed");
+        const oldCity = await City.findOne({codeCommune: city.codeCommune})
+        console.log("old city =>")
+        console.log(JSON.stringify(oldCity,null,"\t"));
+        console.log("new city =>");
+        console.log(JSON.stringify(city,null,"\t"));
+        throw e;
     }
 }
 
 async function generateDatabase() {
     await City.deleteMany({});
+    await Departement.deleteMany({});
+    await Region.deleteMany({});
+    console.log("database purged");
 
     const computingPromises = [];
-    const globalCityGetPromises = {};
 
     const path = __dirname+"/docs/";
-    for (const dir of await fsPromise.readdir(path)) {
-        const indices = [];
+    for (const [dir,files] of Object.entries(indicesConfig.foldersAndFiles)) {
+        const indices = {};
 
         const colNamesConfig = indicesConfig.colsNameByFolder[dir] ?? indicesConfig.colsNameByFolder.default;
 
-        let cols = [colNamesConfig.numCommune, colNamesConfig.nameCommune, 'Département'];
+        let cols = [colNamesConfig.codeCommune, colNamesConfig.nameCommune, 'Département', 'Région', ...(indicesConfig.totalNbPeopleColByFolder[dir]??[])];
         for (const axe of indicesConfig.axes) {
             for (const indice of axe.indices) {
                 if (indice.docFolder === dir) {
-                    indices.push({
+                    indices[indice.name] = {
                         ...indice,
                         axeName: axe.name
-                    });
+                    }
                     cols = [...cols, ...indice.cols];
                 }
             }
         }
 
-        for (const file of await fsPromise.readdir(path+dir)) {
-            computingPromises.push((() => new Promise(resolve => {
+        for (const file of files) {
+            await (() => new Promise(resolve => {
                 console.log("read "+file);
                 const stream = fs.createReadStream(path+dir+"/"+file, {encoding: 'utf8'});
+
                 let city = null;
+                let departement = null
+                let region = null;
+
                 let axesByName = {};
                 let indicesByNameAndAxeName = {};
 
                 const indexByColName = {};
                 let i = 0;
 
-                stream.on('end', async () => {
-                    console.log("finished "+file);
-                    if (city) {
-                        try {
-                            await city.save();
-                        } catch(e) {
-                            console.log("save failed");
-                            console.log(city);
-                            throw e;
-                        }
-                    }
-                    resolve();
-                })
-
                 const eachLine = async data => {
+                    if (data.trim() === '')
+                        return;
+                    if (i%500 === 0) {
+                        console.log("line "+i);
+                    }
                     if (i === 0) {
-                        for (const [i,colname] of Object.entries(data.split(","))) {
+                        for (const [i,colname] of Object.entries(data.split(",", true))) {
                             if (cols.includes(colname)) {
                                 indexByColName[colname] = parseInt(i);
                             }
@@ -75,41 +259,27 @@ async function generateDatabase() {
                         return;
                     }
 
-                    const line = data.split(",");
-                    if (city === null || city.codeCommune !== line[indexByColName[colNamesConfig.numCommune]]) {
+                    const line = data.split(",", true);
+                    if (city === null || city.codeCommune !== line[indexByColName[colNamesConfig.codeCommune]]) {
                         if (city !== null) {
-                            try {
-                                await city.save();
-                            } catch(e) {
-                                console.log("save failed 2");
-                                console.log(city);
-                                throw e;
-                            }
+                            await saveCity(city,departement,indices);
                         }
                         axesByName = {};
                         indicesByNameAndAxeName = {};
-                        if (globalCityGetPromises[line[indexByColName[colNamesConfig.numCommune]]] === undefined) {
-                            globalCityGetPromises[line[indexByColName[colNamesConfig.numCommune]]] = createCityGetter(() => City.findOne({codeCommune: line[indexByColName[colNamesConfig.numCommune]]}));
-                        }
-                        city = await (() => new Promise(resolve => {
-                            globalCityGetPromises[line[indexByColName[colNamesConfig.numCommune]]](resolve)
-                        }));
-                        delete globalCityGetPromises[line[indexByColName[colNamesConfig.numCommune]]];
 
+                        const obj = {codeCommune: line[indexByColName[colNamesConfig.codeCommune]]};
+
+                        city = await City.findOne(obj);
                         if (city === null) {
                             const obj = {
                                 nom: line[indexByColName[colNamesConfig.nameCommune]],
-                                codeCommune: line[indexByColName[colNamesConfig.numCommune]],
-                                codeDepartement: line[indexByColName['Département']],
+                                codeCommune: line[indexByColName[colNamesConfig.codeCommune]],
+                                codeDepartement: line[indexByColName['Département']]??null,
+                                codeRegion: line[indexByColName['Région']]??"com",
                                 axes: []
                             };
                             try {
-                                console.log("create city "+obj.nom+" ("+obj.codeCommune+")");
-                                globalCityGetPromises[obj.codeCommune] = createCityGetter(() => City.create(obj));
-                                city = await (() => new Promise(resolve => {
-                                    globalCityGetPromises[line[indexByColName[colNamesConfig.numCommune]]](resolve)
-                                }));
-                                delete globalCityGetPromises[obj.codeCommune];
+                                city = await City.create(obj);
                             } catch (e) {
                                 console.log({file});
                                 console.log("create failed");
@@ -125,32 +295,142 @@ async function generateDatabase() {
                             }
                         }
                     }
+                    if (city.codeDepartement && (departement === null || city.codeDepartement !== departement.codeDepartement)) {
+                        if (departement !== null) {
+                            await saveDepartement(departement, region, indices);
+                        }
+                        departement = await Departement.findOne({codeDepartement: city.codeDepartement});
+                        if (departement === null) {
+                            const obj = {
+                                codeDepartement: city.codeDepartement,
+                                codeRegion: city.codeRegion,
+                                axes: []
+                            };
+                            try {
+                                departement = await Departement.create(obj);
+                            } catch (e) {
+                                console.log({file});
+                                console.log("create departement failed");
+                                console.log(obj);
+                                console.log("cols =>");
+                                console.log(cols);
+                                console.log({i})
+                                console.log("line =>");
+                                console.log(line);
+                                console.log({data});
+                                console.log(indexByColName);
+                                throw e;
+                            }
+                        }
+                    } else if (city.codeDepartement === null) {
+                        departement = null;
+                    }
+                    if (departement && (region === null || city.codeRegion !== region.codeRegion)) {
+                        if (region !== null) {
+                            await saveRegion(region,indices);
+                        }
+                        region = await Region.findOne({codeRegion: city.codeRegion});
+                        if (region === null) {
+                            const obj = {
+                                codeRegion: city.codeRegion,
+                                axes: []
+                            };
+                            try {
+                                region = await Region.create(obj);
+                            } catch (e) {
+                                console.log({file});
+                                console.log("create region failed");
+                                console.log(obj);
+                                console.log("cols =>");
+                                console.log(cols);
+                                console.log({i})
+                                console.log("line =>");
+                                console.log(line);
+                                console.log({data});
+                                console.log(indexByColName);
+                                throw e;
+                            }
+                        }
+                    }
 
-                    for (const indice of indices) {
+                    for (const indice of Object.values(indices)) {
                         if (axesByName[indice.axeName] === undefined) {
-                            city.axes.push({
-                                name: indice.axeName,
-                                indices: []
-                            });
-                            axesByName[indice.axeName] = city.axes[city.axes.length-1];
+                            axesByName[indice.axeName] = city.axes.find(axe => axe.nom === indice.axeName);
+                            if (axesByName[indice.axeName] === undefined) {
+                                city.axes.push({
+                                    nom: indice.axeName,
+                                    indices: []
+                                });
+                                axesByName[indice.axeName] = city.axes[city.axes.length - 1];
+                                try {
+                                    await city.save();
+                                } catch(e) {
+                                    console.log("save failed 3");
+                                    const oldCity = await City.findOne({codeCommune: city.codeCommune})
+                                    console.log("old city =>")
+                                    console.log(JSON.stringify(oldCity,null,"\t"));
+                                    console.log("new city =>");
+                                    console.log(JSON.stringify(city,null,"\t"));
+                                    throw e;
+                                }
+                            }
                         }
                         const axe = axesByName[indice.axeName];
                         if (indicesByNameAndAxeName[axe.name] === undefined) {
                             indicesByNameAndAxeName[axe.name] = {};
                         }
                         if (indicesByNameAndAxeName[axe.name][indice.name] === undefined) {
-                            axe.indices.push({
-                                name: indice.name,
-                                value: 0
-                            });
-                            indicesByNameAndAxeName[axe.name][indice.name] = axe.indices[axe.indices.length-1];
+                            indicesByNameAndAxeName[axe.name][indice.name] = axe.indices.find(eachIndice => eachIndice.nom === indice.name);
+                            if (indicesByNameAndAxeName[axe.name][indice.name] === undefined) {
+                                axe.indices.push({
+                                    nom: indice.name,
+                                    value: null,
+                                    set: []
+                                });
+                                indicesByNameAndAxeName[axe.name][indice.name] = axe.indices[axe.indices.length - 1];
+                            }
                         }
-                        for (const col of indice.cols) {
-                            indicesByNameAndAxeName[axe.name][indice.name].value += parseInt(line[indexByColName[col]]);
+                        let value = indice.cols.reduce((acc,col) => {
+                            const n = parseFloat(line[indexByColName[col]]);
+                            return acc+(isNaN(n) ? 0 : n);
+                        } , 0);
+                        if (indice.divideWithTotalNbPeople && indicesConfig.totalNbPeopleColByFolder[dir]) {
+                            let totalPeople = indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0);
+                            value = totalPeople !== 0 ? value/indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0) : 0;
+                        }
+                        indicesByNameAndAxeName[axe.name][indice.name].set.push(value);
+
+                        try {
+                            await city.save();
+                        } catch(e) {
+                            console.log("save failed 4");
+                            const oldCity = await City.findOne({codeCommune: city.codeCommune})
+                            console.log("old city =>")
+                            console.log(JSON.stringify(oldCity,null,"\t"));
+                            console.log("new city =>");
+                            console.log(JSON.stringify(city,null,"\t"));
+                            throw e;
                         }
                     }
                     i ++;
                 }
+
+                const onClose = async () => {
+                    console.log("finished "+file);
+                    if (city) {
+                        await saveCity(city,departement,indices);
+                    }
+                    if (departement) {
+                        await saveDepartement(departement, region, indices);
+                    }
+                    if (region) {
+                        await saveRegion(region, indices);
+                    }
+                    resolve();
+                }
+
+                let finished = false;
+                let paused = false;
 
                 let currentLines = "";
                 stream.on('data', async data => {
@@ -159,12 +439,25 @@ async function generateDatabase() {
                     if ((lines = currentLines.split("\n")).length > 1) {
                         currentLines = lines[lines.length-1];
                         lines = lines.slice(0,-1);
+                        stream.pause();
+                        paused = true;
                         for (const line of lines) {
-                            eachLine(line)
+                            await eachLine(line);
                         }
+                        stream.resume();
+                        paused = false;
+                        if (finished)
+                            onClose();
                     }
                 });
-            }))());
+
+                stream.on('end', async () => {
+                    await eachLine(currentLines);
+                    finished = true;
+                    if (!paused)
+                        onClose();
+                })
+            }))();
         }
     }
 
@@ -172,4 +465,4 @@ async function generateDatabase() {
     console.log("FINISH");
 }
 
-module.exports = generateDatabase;
+generateDatabase();

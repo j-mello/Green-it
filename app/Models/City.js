@@ -8,6 +8,7 @@ const CitySchema = new Schema({
     nom: { type: String, required: true },
     codeCommune: { type: String, required: true },
     codeDepartement: { type: String, required: false },
+    codeRegion: { type: String, required: true },
     axes: [Axe]
 });
 
