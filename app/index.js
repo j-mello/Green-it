@@ -40,7 +40,7 @@ app.get("/score/:codeCommune", async (req, res) => {
 
     res.json({
         city: {name: city.nom, ...cityScores},
-        department: {codeDepartement: department.codeDepartement, ...departementScores},
+        department: {name: department.codeDepartement, ...departementScores},
         region: getRegionValues(region)
     })
 })

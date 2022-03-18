@@ -1,33 +1,42 @@
 <!DOCTYPE html>
 <html lang='fr'>
+
     <head>
         <meta charset="UTF-8">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
-
+        <script type="text/javascript" src="script.js"></script>
         <link rel="stylesheet" href="style.css">
     </head>
+
     <body>
-        <div class="row">
-            <div class='column column-10'>
-                
-            </div>
-            <div class='column column-80'> 
-                <h1>L'illectronisme en France</h1>
-                <p>Vous pouvez récuperer différentes informations sur l'illectronisme en France en rentrant le nom d'une ville ou son code commune (différent du code postal) plus bas :</p>
-                <form action="#" method="post">
-                    <fieldset><div>
-                        <label for="cityName">Ville ou code commune :</label>
-                        <input type="text" id="cityName" name="cityName" placeholder="Arnac-la-Poste">
-                    </div>
+        <div class="container">
+            <h1 class="title">L'illectronisme en France</h1>
+            <p>Vous pouvez récuperer différentes informations sur l'illectronisme en France en rentrant le nom d'une
+                ville ou son code commune (différent du code postal) plus bas :</p>
+            <form id="form" method="post">
+                <fieldset>
                     <div>
-                        <button class='button-primary' type="submit">Consulter les données</button>
+                        <label for="cityName">Ville ou code commune :</label>
                     </div>
-                </fieldset>    
-                </form>
-            </div>
-            <div class='column column-10'></div>
+                    <div class="row">
+                        <input type="text" id="cityName" name="cityName" placeholder="Arnac-la-Poste">
+                        <button class="button" type="submit">Consulter les données</button>
+                    </div>
+                    <div id="data" class="hidden">
+                        <div id="dataCity" class="pb-4"></div>
+
+                        <div id="dataDepartement" class="pb-4"></div>
+
+                        <div id="dataRegion"></div>
+                    </div>
+                    <div id="error" class="hidden">
+                        <h2>Aucune ville n'a été trouvée</h2>
+                    </div>
+                </fieldset>
+            </form>
         </div>
     </body>
+
 </html>

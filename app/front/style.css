@@ -1,0 +1,12 @@
+.title {
+  text-align: center;
+  margin-top: 1em;
+}
+
+.pb-4 {
+  padding-bottom: 1rem;
+}
+
+.hidden {
+  display: none;
+}
