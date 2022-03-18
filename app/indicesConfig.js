@@ -91,21 +91,27 @@ module.exports = {
             name: "Accès au numérique",
             indices: [
                 {
+                    name: "Couverture 2g",
+                    docFolder: "Couverture Mobile Metropole",
+                    cols: ["site_2g"]
+                },
+                {
                     name: "Couverture 3g",
                     docFolder: "Couverture Mobile Metropole",
-                    cols: ["site_3g"]
+                    cols: ["site_3g"],
+                    coef: 2
                 },
                 {
                     name: "Couverture 4g",
                     docFolder: "Couverture Mobile Metropole",
                     cols: ["site_4g"],
-                    coef: 2
+                    coef: 3
                 },
                 {
                     name: "Couverture 5g",
                     docFolder: "Couverture Mobile Metropole",
                     cols: ["site_5g"],
-                    coef: 3
+                    coef: 4
                 },
                 {
                     name: "Taux de couverture Haut débit / Très haut débit",
