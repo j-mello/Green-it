@@ -136,8 +136,18 @@ async function saveCity(city,departement,indices) {
                 }
             }
         }
-        for (const indice of axe.indices) {
+        let indicesDeleted = false;
+        for (let i=0;i<axe.indices.length;i++) {
+            const indice = axe.indices[i];
+
             if (indices[indice.nom] && indice.value === null) {
+                if (!indice.set || indice.set.length === 0) {
+                    console.log("delete indice '"+indice.nom+"' in city '"+city.codeCommune+"'");
+                    axe.indices.splice(i,1);
+                    indicesDeleted = true;
+                    i --;
+                    continue;
+                }
                 indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
                 indice.set = null;
 
@@ -182,6 +192,41 @@ async function saveCity(city,departement,indices) {
                     throw e;
                 }
             }
+        }
+        if (indicesDeleted) {
+            try {
+                await city.save();
+            } catch(e) {
+                console.log("save failed 0");
+                const oldCity = await City.findOne({codeCommune: city.codeCommune})
+                console.log("old city =>")
+                console.log(JSON.stringify(oldCity,null,"\t"));
+                console.log("new city =>");
+                console.log(JSON.stringify(city,null,"\t"));
+                throw e;
+            }
+        }
+    }
+    let axesDeleted = false;
+    for (let i=0;i<city.axes.length;i++) {
+        const axe = city.axes[i];
+        if (axe.indices.length === 0) {
+            city.axes.splice(i,1);
+            axesDeleted = true;
+            i --;
+        }
+    }
+    if (axesDeleted) {
+        try {
+            await city.save();
+        } catch(e) {
+            console.log("save failed 0");
+            const oldCity = await City.findOne({codeCommune: city.codeCommune})
+            console.log("old city =>")
+            console.log(JSON.stringify(oldCity,null,"\t"));
+            console.log("new city =>");
+            console.log(JSON.stringify(city,null,"\t"));
+            throw e;
         }
     }
     try {
@@ -390,15 +435,18 @@ async function generateDatabase() {
                                 indicesByNameAndAxeName[axe.name][indice.name] = axe.indices[axe.indices.length - 1];
                             }
                         }
+
                         let value = indice.cols.reduce((acc,col) => {
                             const n = parseFloat(line[indexByColName[col]]);
-                            return acc+(isNaN(n) ? 0 : n);
+                            return acc+n;
                         } , 0);
-                        if (indice.divideWithTotalNbPeople && indicesConfig.totalNbPeopleColByFolder[dir]) {
+                        if (!isNaN(value) && indice.divideWithTotalNbPeople && indicesConfig.totalNbPeopleColByFolder[dir]) {
                             let totalPeople = indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0);
-                            value = totalPeople !== 0 ? value/indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0) : 0;
+                            value = (!isNaN(totalPeople) && totalPeople !== 0) ? value/indicesConfig.totalNbPeopleColByFolder[dir].reduce((acc,col) => acc+parseFloat(line[indexByColName[col]]), 0) : NaN;
                         }
-                        indicesByNameAndAxeName[axe.name][indice.name].set.push(value);
+                        if (!isNaN(value)) {
+                            indicesByNameAndAxeName[axe.name][indice.name].set.push(value);
+                        }
 
                         try {
                             await city.save();
