@@ -6,6 +6,7 @@ const db = connect();
 
 const DepartementSchema = new Schema({
     codeDepartement: { type: String, required: true },
+    codeRegion: {type: String, required: true},
     axes: [Axe]
 });
 
