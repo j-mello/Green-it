@@ -25,12 +25,17 @@ window.addEventListener("DOMContentLoaded", event => {
       })
       .then(data => {
         if (data) {
+          dataCityDiv.innerHTML = ""
           const dataCityDivH2 = document.createElement("h2")
           dataCityDivH2.innerHTML = "Ville"
           dataCityDiv.appendChild(dataCityDivH2)
+
+          dataDepartementDiv.innerHTML = ""
           const dataDepartementDivH2 = document.createElement("h2")
           dataDepartementDivH2.innerHTML = "Département"
           dataDepartementDiv.appendChild(dataDepartementDivH2)
+
+          dataRegionDiv.innerHTML = ""
           const dataRegionDivH2 = document.createElement("h2")
           dataRegionDivH2.innerHTML = "Région"
           dataRegionDiv.appendChild(dataRegionDivH2)
