@@ -31,7 +31,8 @@ function calculCityOrDepartmentScore(res, region, elem) {
 
             axeResJon.indices.push({
                 nom: indice.nom,
-                score: ((indice.value - foundIndiceR.value) / foundIndiceR.value + 1) * 100
+                score: ((indice.value - foundIndiceR.value) / foundIndiceR.value + 1) * 100,
+                coef: indice.coef
             });
         }
         axeResJon.score = axeResJon.indices.reduce((acc, indice) => acc + indice.score*indice.coef, 0) / axeResJon.indices.reduce((acc, indice) => acc + indice.coef, 0);

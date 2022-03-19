@@ -91,33 +91,35 @@ module.exports = {
             name: "Accès au numérique",
             indices: [
                 {
-                    name: "Couverture 2g",
+                    name: "Manque de couverture 2g",
                     docFolder: "Couverture Mobile Metropole",
-                    cols: ["site_2g"]
+                    cols: ["site_2g"],
+                    compute: value => 1-value
                 },
                 {
-                    name: "Couverture 3g",
+                    name: "Manque de couverture 3g",
                     docFolder: "Couverture Mobile Metropole",
                     cols: ["site_3g"],
-                    coef: 2
+                    compute: value => 1-value
                 },
                 {
-                    name: "Couverture 4g",
+                    name: "Manque de couverture 4g",
                     docFolder: "Couverture Mobile Metropole",
                     cols: ["site_4g"],
-                    coef: 3
+                    compute: value => 1-value
                 },
                 {
-                    name: "Couverture 5g",
+                    name: "Manque de couverture 5g",
                     docFolder: "Couverture Mobile Metropole",
                     cols: ["site_5g"],
-                    coef: 4
+                    compute: value => 1-value
                 },
                 {
-                    name: "Taux de couverture Haut débit / Très haut débit",
+                    name: "Manque de couverture Haut débit / Très haut débit",
                     docFolder: "Haut débit",
                     cols: ["Nombre locaux IPE T4 2021 (somme tous OI)"],
-                    divideWithTotalNbPeople: true
+                    divideWithTotalNbPeople: true,
+                    compute: value => 1-value
                 }
             ]
         },

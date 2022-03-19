@@ -329,7 +329,7 @@ async function generateDatabase() {
                             }
                         }
                         if (!isNaN(value)) {
-                            indicesByNameAndAxeName[axe.nom][indice.name].set.push(value);
+                            indicesByNameAndAxeName[axe.nom][indice.name].set.push(typeof(indice.compute) === "undefined" ? indice.compute(value) : value);
                         }
                         await city.save();
                     }
