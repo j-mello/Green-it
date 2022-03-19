@@ -122,6 +122,7 @@ async function saveCity(city,departement,indices) {
                     axe.indices.splice(i,1);
                     indicesDeleted = true;
                     i --;
+                    await city.save();
                     continue;
                 }
                 indice.value = indice.set.reduce((acc,val) => acc+val, 0)/indice.set.length;
@@ -300,19 +301,19 @@ async function generateDatabase() {
                             }
                         }
                         const axe = axesByName[indice.axeName];
-                        if (indicesByNameAndAxeName[axe.name] === undefined) {
-                            indicesByNameAndAxeName[axe.name] = {};
+                        if (indicesByNameAndAxeName[axe.nom] === undefined) {
+                            indicesByNameAndAxeName[axe.nom] = {};
                         }
-                        if (indicesByNameAndAxeName[axe.name][indice.name] === undefined) {
-                            indicesByNameAndAxeName[axe.name][indice.name] = axe.indices.find(eachIndice => eachIndice.nom === indice.name);
-                            if (indicesByNameAndAxeName[axe.name][indice.name] === undefined) {
+                        if (indicesByNameAndAxeName[axe.nom][indice.name] === undefined) {
+                            indicesByNameAndAxeName[axe.nom][indice.name] = axe.indices.find(eachIndice => eachIndice.nom === indice.name);
+                            if (indicesByNameAndAxeName[axe.nom][indice.name] === undefined) {
                                 axe.indices.push({
                                     nom: indice.name,
                                     value: null,
                                     set: [],
                                     coef: indice.coef
                                 });
-                                indicesByNameAndAxeName[axe.name][indice.name] = axe.indices[axe.indices.length - 1];
+                                indicesByNameAndAxeName[axe.nom][indice.name] = axe.indices[axe.indices.length - 1];
                             }
                         }
 
@@ -328,12 +329,8 @@ async function generateDatabase() {
                             }
                         }
                         if (!isNaN(value)) {
-                            if (indicesByNameAndAxeName[axe.name][indice.name].set === null) {
-                                console.log("set null in "+city.nom+" ("+city.codeCommune+")");
-                            }
-                            indicesByNameAndAxeName[axe.name][indice.name].set.push(value);
+                            indicesByNameAndAxeName[axe.nom][indice.name].set.push(value);
                         }
-
                         await city.save();
                     }
                     i ++;
