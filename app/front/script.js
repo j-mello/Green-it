@@ -10,7 +10,7 @@ window.addEventListener("DOMContentLoaded", event => {
     const dataDepartementDiv = document.getElementById("dataDepartement")
     const dataRegionDiv = document.getElementById("dataRegion")
 
-    fetch(`http://${window.location.hostname}:3000/score/${city}`)
+    fetch(`${window.location.origin}/score/${city}`)
       .then(function(response) {
         if (response.ok) {
           errorH2.classList.add("hidden")
