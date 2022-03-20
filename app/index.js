@@ -17,7 +17,7 @@ app.use(cors());
 
 app.get("/score/:codeOrNameCommune", async (req, res) => {
     const {codeOrNameCommune} = req.params;
-    const city = await City.findOne({$or: [{codeCommune: codeOrNameCommune}, {nom: codeOrNameCommune}] });
+    const city = await City.findOne({$or: [{codeCommune: codeOrNameCommune}, {nom_lower: codeOrNameCommune.toLowerCase()}] });
     if (city === null)
         return res.sendStatus(404);
 
