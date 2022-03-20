@@ -1,5 +1,5 @@
 # Green-it
-Projet Green IT
+Projet Green IT : http://www.s2c-ingenieurstructure.com/ (l'application est hébergée sur le Raspberry d'un membre du groupe)
 
 ## Membres du groupe
 - Julien Bouvet julientbouvet78@hotmail.com
@@ -8,9 +8,9 @@ Projet Green IT
 - Julien Mello mello.julien@gmail.com
 
 
-## Mise en place de la base donnée
+## Mise en place de la base de données
 
-Pour génerer la base donnée des indicateurs de fragilité numérique nous avons opté pour MongoDB, avec l'ORM Mongoose en node js.
+Pour génerer la base de données des indicateurs de fragilité numérique nous avons opté pour MongoDB, avec l'ORM Mongoose en node js.
 
 Nous avons créé le script generateDatabase.js, qui a partir des différents csv que nous avons récupéré,
 et du fichier de configuration indicesConfig.js définissant qu'elles données récupérer précisément dans chaque csv,
@@ -28,6 +28,11 @@ Pour chaque indice de chaque ville, nous faisons une moyenne de tout les iris de
 Pour chaque indice de chaque département, nous faisons une moyenne de toutes les villes de ce département.
 
 Et pour chaque indice de chaque region, nous faisons une moyenne de tous les départements de cette région.
+
+## Lancer l'application
+
+Pour lancer l'application, vous devez disposer de docker et effectuer la commande suivante : docker-compose up -d
+L'application sera disponible sur le port 3000. Vous pourrez ainsi après executer le script pour la base de données ou l'extraire.
 
 ## Récupérer la base de données
 
@@ -49,3 +54,21 @@ Nous effectuons ce calcul pour la ville et le département.
 Pour la région, nous nous contentons d'afficher les valeur des indicateurs directement
 
 Ces données sont ensuite retournées au front pour être affichées
+
+## Scores de benchmark d'éco-conception
+
+Les résultats de Lighthouse :
+
+![image](https://user-images.githubusercontent.com/46940856/159163741-86522707-8972-4581-bfb3-dbdb13d06230.png)
+
+Les résultats de Ecoindex (extension Google Chrome) :
+
+![image](https://user-images.githubusercontent.com/46940856/159165209-c20114fb-1b8f-4886-b303-2ddc5fa0fec0.png)
+
+
+Les résultats de Ecograder :
+
+![image](https://user-images.githubusercontent.com/46940856/159165510-b4bf3a21-02f6-4802-8a21-1c058aa0cd6c.png)
+
+
+
