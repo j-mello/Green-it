@@ -63,8 +63,7 @@ Les résultats de Lighthouse :
 
 Les résultats de Ecoindex (extension Google Chrome) :
 
-![image](https://user-images.githubusercontent.com/46940856/159165209-c20114fb-1b8f-4886-b303-2ddc5fa0fec0.png)
-
+![image](https://user-images.githubusercontent.com/46940856/159174229-aff5631a-f6c3-43bb-b24d-663aaa9ede29.png)
 
 Les résultats de Ecograder :
 
