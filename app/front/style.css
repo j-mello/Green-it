@@ -1,16 +1,1 @@
-.title {
-  text-align: center;
-  margin-top: 1em;
-}
-
-.pb-4 {
-  padding-bottom: 1rem;
-}
-
-.hidden {
-  display: none;
-}
-
-h1, h2 {
-  color: #9b4dca;
-}
+.title{text-align:center;margin-top:1em}.pb-4{padding-bottom:1rem}.hidden{display:none}h1,h2{color:#9b4dca}
