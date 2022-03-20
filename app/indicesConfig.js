@@ -1,45 +1,72 @@
 module.exports = {
-    totalNbPeopleColByFolder: {
-        "Couples - Familles - Ménages en 2016": ["Ménages en 2016 (compl)"],
-        "Diplômes - Formation en 2016": [
-            "Pop 2-5 ans en 2016 (princ)",
-            "Pop 6-10 ans en 2016 (princ)",
-            "Pop 11-14 ans en 2016 (princ)",
-            "Pop 15-17 ans en 2016 (princ)",
-            "Pop 18-24 ans en 2016 (princ)",
-            "Pop 25-29 ans en 2016 (princ)",
-            "Pop 30 ans ou plus en 2016 (princ)"
-        ],
-        "Population 2016": ["Population en 2016 (princ)"]
-    },
-    foldersAndFiles: {
-        "Couples - Familles - Ménages en 2016": [
-            "base-ic-couples-familles-menages-2016.csv",
-            "base-ic-couples-familles-menages-2016-com.csv"
-        ],
-        "Diplômes - Formation en 2016": [
-            "base-ic-diplomes-formation-2016.csv",
-            "base-ic-diplomes-formation-2016-com.csv"
-        ],
-        "Population 2016": [
-            "base-ic-evol-struct-pop-2016.csv",
-            "base-ic-evol-struct-pop-2016-com.csv"
-        ],
-        "Revenus, pauvreté et niveau de vie en 2015 (IRIS)": [
-            "BASE_TD_FILO_DEC_IRIS_2015.csv"
-        ],
-        "Revenus et pauvreté des ménages en 2016": [
-            "base-cc-filosofi-2016.csv"
-        ]
-    },
-    colsNameByFolder: {
+    foldersConfig: {
         default: {
-            codeCommune: 'Commune ou ARM',
-            nameCommune: 'Libellé commune ou ARM',
+            colsName: {
+                codeCommune: 'Commune ou ARM',
+                nameCommune: 'Libellé commune ou ARM',
+            }
+        },
+        "Couples - Familles - Ménages en 2016": {
+            files: [
+                "base-ic-couples-familles-menages-2016.csv",
+                "base-ic-couples-familles-menages-2016-com.csv"
+            ],
+            totalNbPeopleCols: ["Ménages en 2016 (compl)"]
+        },
+        "Diplômes - Formation en 2016": {
+            files: [
+                "base-ic-diplomes-formation-2016.csv",
+                "base-ic-diplomes-formation-2016-com.csv"
+            ],
+            totalNbPeopleCols: [
+                "Pop 2-5 ans en 2016 (princ)",
+                "Pop 6-10 ans en 2016 (princ)",
+                "Pop 11-14 ans en 2016 (princ)",
+                "Pop 15-17 ans en 2016 (princ)",
+                "Pop 18-24 ans en 2016 (princ)",
+                "Pop 25-29 ans en 2016 (princ)",
+                "Pop 30 ans ou plus en 2016 (princ)"
+            ]
+        },
+        "Population 2016": {
+            files: [
+                "base-ic-evol-struct-pop-2016.csv",
+                "base-ic-evol-struct-pop-2016-com.csv"
+            ],
+            totalNbPeopleCols: ["Population en 2016 (princ)"]
+        },
+        "Revenus, pauvreté et niveau de vie en 2015 (IRIS)": {
+            files: [
+                "BASE_TD_FILO_DEC_IRIS_2015.csv"
+            ]
         },
         "Revenus et pauvreté des ménages en 2016": {
-            codeCommune: 'Code géographique',
-            nameCommune: 'Libellé géographique'
+            files: [
+                "base-cc-filosofi-2016.csv"
+            ],
+            colsName: {
+                codeCommune: 'Code géographique',
+                nameCommune: 'Libellé géographique'
+            }
+        },
+        "Couverture Mobile Metropole": {
+            files: [
+                "2021-t3-metropole-sites.csv"
+            ],
+            colsName: {
+                codeCommune: 'insee_com',
+                nameCommune: 'nom_com'
+            }
+        },
+        "Haut débit": {
+            files: [
+                "villes.csv"
+            ],
+            totalNbPeopleCols: ["Logements"],
+            colsName: {
+                codeCommune: 'Code commune',
+                nameCommune: 'Nom commune'
+            }
         }
     },
     axes: [
@@ -57,6 +84,42 @@ module.exports = {
                     docFolder: "Couples - Familles - Ménages en 2016",
                     divideWithTotalNbPeople: true,
                     cols: ["Pop mén fam princ Famille mono en 2016 (compl)"]
+                }
+            ]
+        },
+        {
+            name: "Accès au numérique",
+            indices: [
+                {
+                    name: "Manque de couverture 2g",
+                    docFolder: "Couverture Mobile Metropole",
+                    cols: ["site_2g"],
+                    compute: value => 1-value
+                },
+                {
+                    name: "Manque de couverture 3g",
+                    docFolder: "Couverture Mobile Metropole",
+                    cols: ["site_3g"],
+                    compute: value => 1-value
+                },
+                {
+                    name: "Manque de couverture 4g",
+                    docFolder: "Couverture Mobile Metropole",
+                    cols: ["site_4g"],
+                    compute: value => 1-value
+                },
+                {
+                    name: "Manque de couverture 5g",
+                    docFolder: "Couverture Mobile Metropole",
+                    cols: ["site_5g"],
+                    compute: value => 1-value
+                },
+                {
+                    name: "Manque de couverture Haut débit / Très haut débit",
+                    docFolder: "Haut débit",
+                    cols: ["Nombre locaux IPE T4 2021 (somme tous OI)"],
+                    divideWithTotalNbPeople: true,
+                    compute: value => 1-value
                 }
             ]
         },
@@ -99,8 +162,8 @@ module.exports = {
                     ]
                 },
                 {
-                    name: "Part des personnes de 15 ans\n" +
-                        "et plus peu / non diplômées et\n" +
+                    name: "Part des personnes de 15 ans " +
+                        "et plus peu / non diplômées et " +
                         "Non scolarisées",
                     docFolder: "Diplômes - Formation en 2016",
                     divideWithTotalNbPeople: true,
